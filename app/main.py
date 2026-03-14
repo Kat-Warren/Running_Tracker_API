@@ -80,3 +80,7 @@ def update_run(run_id: int, updated_run: schemas.RunUpdate, db: Session = Depend
     db.refresh(run)
 
     return run
+
+@app.get("/performances")
+def get_performances(db: Session = Depends(get_db)):
+    return db.query(models.Performance).all()
