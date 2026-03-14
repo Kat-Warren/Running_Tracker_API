@@ -120,6 +120,13 @@
             </select>
 
             <textarea id="notes" placeholder="Notes (optional)"></textarea>
+            <input type="number" id="age" placeholder="Age" required>
+
+            <select id="gender" required>
+                <option value="">Select gender</option>
+                <option value="Men">Men</option>
+                <option value="Women">Women</option>
+            </select>
 
             <button type="submit">Add Run</button>
         </form>
@@ -158,8 +165,11 @@
                         <p><strong>Distance:</strong> ${run.distance_km} km</p>
                         <p><strong>Duration:</strong> ${run.duration_minutes} minutes</p>
                         <p><strong>Type:</strong> ${run.run_type}</p>
+                        <p><strong>Age:</strong> ${run.age ?? "Not set"}</p>
+                        <p><strong>Gender:</strong> ${run.gender ?? "Not set"}</p>
                         <p><strong>Notes:</strong> ${run.notes ? run.notes : "None"}</p>
                         <div class="actions">
+                            <button onclick="window.location.href='/static/compare.html?run_id=${run.id}'">Compare Stats</button>
                             <button class="delete-btn" onclick="deleteRun(${run.id})">Delete</button>
                         </div>
                     `;
@@ -203,8 +213,20 @@
                 distance_km: parseFloat(document.getElementById("distance_km").value),
                 duration_minutes: parseInt(document.getElementById("duration_minutes").value),
                 run_type: document.getElementById("run_type").value,
-                notes: document.getElementById("notes").value || null
+                notes: document.getElementById("notes").value || null,
+                age: parseInt(document.getElementById("age").value),
+                gender: document.getElementById("gender").value
+                
             };
+            if (Number.isNaN(runData.age)) {
+                showMessage("Please enter a valid age.", "red");
+                return;
+            }
+
+            if (!runData.gender) {
+                showMessage("Please select a gender.", "red");
+                return;
+            }
 
             try {
                 const response = await fetch(`${apiBase}/runs`, {

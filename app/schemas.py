@@ -7,6 +7,8 @@ class RunCreate(BaseModel):
     duration_minutes: int
     run_type: str
     notes: str | None = None
+    gender : str
+    age : int
 
 class RunResponse(RunCreate):
     id: int
@@ -21,3 +23,5 @@ class RunUpdate(BaseModel):
     duration_minutes: int
     run_type: str
     notes: str | None = None
+    gender : str
+    age : int

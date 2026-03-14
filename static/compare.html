@@ -1,0 +1,121 @@
+<!Referenace: Code adapted from ChatGPT to generate the html page-->
+<!https://chatgpt.com/share/69b56068-d824-8002-8e30-99b5bd5c22fe-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Stats</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 14px;
+            background: #222;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        .stat-box {
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="back-btn" href="/">← Back to Runs</a>
+        <h1>Compare Stats</h1>
+
+        <div id="comparisonData"></div>
+
+        <h2>Graph</h2>
+        <canvas id="comparisonChart"></canvas>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const runId = params.get("run_id");
+
+        async function loadComparison() {
+            const container = document.getElementById("comparisonData");
+
+            try {
+                const response = await fetch(`/compare/${runId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    container.innerHTML = `<p>${data.detail}</p>`;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="stat-box">
+                        <p><strong>Run:</strong> ${data.run_title}</p>
+                        <p><strong>Gender:</strong> ${data.user_gender}</p>
+                        <p><strong>Age:</strong> ${data.user_age}</p>
+                        <p><strong>Age Group:</strong> ${data.age_group}</p>
+                        <p><strong>Matched Event:</strong> ${data.matched_event}</p>
+                    </div>
+
+                    <div class="stat-box">
+                        <p><strong>Your Time:</strong> ${data.user_time_seconds} seconds</p>
+                        <p><strong>Elite Time:</strong> ${data.elite_time_original}</p>
+                        <p><strong>Elite Athlete:</strong> ${data.elite_name}</p>
+                        <p><strong>Country:</strong> ${data.elite_country}</p>
+                        <p><strong>Performance Level:</strong> ${data.percentage_of_elite}% of elite standard</p>
+                    </div>
+                `;
+
+                const ctx = document.getElementById("comparisonChart").getContext("2d");
+
+                new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: ["Your Run", "Elite Benchmark"],
+                        datasets: [{
+                            label: "Time in Seconds",
+                            data: [data.user_time_seconds, data.elite_time_seconds]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                container.innerHTML = "<p>Failed to load comparison data.</p>";
+                console.error(error);
+            }
+        }
+
+        loadComparison();
+    </script>
+</body>
+</html>
