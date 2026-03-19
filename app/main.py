@@ -51,7 +51,11 @@ def get_event_from_distance(distance_km: float) -> str | None:
     elif abs(distance_km - 5.0) < 0.2:
         return "5000 m"
     elif abs(distance_km - 10.0) < 0.3:
-        return "10000 m"
+        return "10,000 m"
+    elif abs(distance_km - 21.1) < 0.5:
+        return "Half marathon"
+    elif abs(distance_km - 42.2) < 1.0:
+        return "Marathon"
     return None
 
 
@@ -142,32 +146,69 @@ def compare_run(run_id: int, db: Session = Depends(get_db)):
 
     min_age, max_age = get_age_group(run.age)
 
-    performances = db.query(models.Performance).filter(
-        models.Performance.gender == run.gender,
+    all_event_performances = db.query(models.Performance).filter(
         models.Performance.event == matched_event
     ).all()
 
-    matching_performances = []
+    if not all_event_performances:
+        raise HTTPException(status_code=404, detail=f"No performances found for event {matched_event}")
 
-    for performance in performances:
+    gender_event_performances = [
+        p for p in all_event_performances
+        if p.gender == run.gender
+    ]
+
+    age_group_matches = []
+
+    for performance in gender_event_performances:
         try:
             dob = datetime.strptime(performance.date_of_birth, "%Y-%m-%d")
             perf_date = datetime.strptime(performance.date, "%Y-%m-%d")
-            athlete_age = perf_date.year - dob.year - ((perf_date.month, perf_date.day) < (dob.month, dob.day))
+            athlete_age = perf_date.year - dob.year - (
+                (perf_date.month, perf_date.day) < (dob.month, dob.day)
+            )
 
             if min_age <= athlete_age <= max_age:
-                matching_performances.append(performance)
+                age_group_matches.append(performance)
         except:
             continue
 
-    if not matching_performances:
-        raise HTTPException(status_code=404, detail="No matching elite performance found")
-
-    best_performance = min(matching_performances, key=lambda p: time_to_seconds(p.time))
+    if age_group_matches:
+        comparison_level = "same gender and age group"
+        best_performance = min(age_group_matches, key=lambda p: time_to_seconds(p.time))
+    elif gender_event_performances:
+        comparison_level = "same gender"
+        best_performance = min(gender_event_performances, key=lambda p: time_to_seconds(p.time))
+    else:
+        comparison_level = "overall event"
+        best_performance = min(all_event_performances, key=lambda p: time_to_seconds(p.time))
 
     user_time_seconds = run.duration_minutes * 60
     elite_time_seconds = time_to_seconds(best_performance.time)
     percentage_of_elite = round((elite_time_seconds / user_time_seconds) * 100, 2)
+
+    user_runs = db.query(models.Run).filter(
+        models.Run.id != run.id,
+        models.Run.duration_minutes != None,
+        models.Run.distance_km != None
+    ).all()
+
+    threshold = 0.1 * run.distance_km if run.distance_km else 0.5
+
+    similar_runs = [
+        r for r in user_runs
+        if abs(r.distance_km - run.distance_km) < threshold
+    ]
+
+    user_best_time = None
+    user_avg_time = None
+    improvement = None
+
+    if similar_runs:
+        times = [r.duration_minutes * 60 for r in similar_runs]
+        user_best_time = min(times)
+        user_avg_time = round(sum(times) / len(times), 2)
+        improvement = round(((user_best_time - user_time_seconds) / user_best_time) * 100, 2)
 
     return {
         "run_id": run.id,
@@ -176,6 +217,7 @@ def compare_run(run_id: int, db: Session = Depends(get_db)):
         "user_age": run.age,
         "age_group": f"{min_age}-{max_age}",
         "matched_event": matched_event,
+        "comparison_level": comparison_level,
         "user_time_seconds": user_time_seconds,
         "elite_time_seconds": elite_time_seconds,
         "elite_time_original": best_performance.time,
@@ -183,5 +225,13 @@ def compare_run(run_id: int, db: Session = Depends(get_db)):
         "elite_country": best_performance.country,
         "elite_city": best_performance.city,
         "elite_date": best_performance.date,
-        "percentage_of_elite": percentage_of_elite
+        "percentage_of_elite": percentage_of_elite,
+        "previous_runs_count": len(similar_runs),
+        "user_best_time": user_best_time,
+        "user_avg_time": user_avg_time,
+        "improvement_vs_best": improvement
     }
+@app.get("/debug/events")
+def debug_events(db: Session = Depends(get_db)):
+    events = db.query(models.Performance.event).distinct().all()
+    return [e[0] for e in events]

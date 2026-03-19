@@ -54,7 +54,6 @@
         <h2>Graph</h2>
         <canvas id="comparisonChart"></canvas>
     </div>
-
     <script>
         const params = new URLSearchParams(window.location.search);
         const runId = params.get("run_id");
@@ -78,14 +77,24 @@
                         <p><strong>Age:</strong> ${data.user_age}</p>
                         <p><strong>Age Group:</strong> ${data.age_group}</p>
                         <p><strong>Matched Event:</strong> ${data.matched_event}</p>
+                        <p><strong>Comparison Basis:</strong> ${data.comparison_level ?? "Exact match"}</p>
                     </div>
 
                     <div class="stat-box">
+                        <h3>Elite Comparison</h3>
                         <p><strong>Your Time:</strong> ${data.user_time_seconds} seconds</p>
                         <p><strong>Elite Time:</strong> ${data.elite_time_original}</p>
                         <p><strong>Elite Athlete:</strong> ${data.elite_name}</p>
                         <p><strong>Country:</strong> ${data.elite_country}</p>
                         <p><strong>Performance Level:</strong> ${data.percentage_of_elite}% of elite standard</p>
+                    </div>
+
+                    <div class="stat-box">
+                        <h3>Your Previous Runs</h3>
+                        <p><strong>Previous Runs:</strong> ${data.previous_runs_count ?? 0}</p>
+                        <p><strong>Best Time:</strong> ${data.user_best_time ?? "N/A"} seconds</p>
+                        <p><strong>Average Time:</strong> ${data.user_avg_time ?? "N/A"} seconds</p>
+                        <p><strong>Improvement vs Best:</strong> ${data.improvement_vs_best ?? "N/A"}%</p>
                     </div>
                 `;
 
@@ -94,10 +103,15 @@
                 new Chart(ctx, {
                     type: "bar",
                     data: {
-                        labels: ["Your Run", "Elite Benchmark"],
+                        labels: ["Current Run", "Your Best", "Your Average", "Elite Benchmark"],
                         datasets: [{
                             label: "Time in Seconds",
-                            data: [data.user_time_seconds, data.elite_time_seconds]
+                            data: [
+                                data.user_time_seconds,
+                                data.user_best_time || 0,
+                                data.user_avg_time || 0,
+                                data.elite_time_seconds
+                            ]
                         }]
                     },
                     options: {
@@ -109,6 +123,7 @@
                         }
                     }
                 });
+
             } catch (error) {
                 container.innerHTML = "<p>Failed to load comparison data.</p>";
                 console.error(error);
@@ -117,5 +132,6 @@
 
         loadComparison();
     </script>
+    
 </body>
 </html>
