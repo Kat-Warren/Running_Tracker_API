@@ -8,6 +8,13 @@ This API using Python, FastAPI, SQLite and SQLAlchemy to create a RESTful web se
 It enables users to log and analyse their running performance.   
 Additionly to the CRUD functionality, my system integrates a real-world dataset to show how the individual performance compares to professionaly benchmarking. This enables the users to compare their runs to elite levels based on event, age and gender. It also has the functionality to compare your performance to historical self performances. 
 
+## API Documentation
+
+The API documentation is provided in the file:
+
+- [API Documentation (PDF)](Running_API Documentation.pdf)
+
+
 # System Architecture
 Backend: Fast API (Python)  
 Database: SQLite  
